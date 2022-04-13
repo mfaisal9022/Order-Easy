@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   getDesignDimension
 } from '../../variables/constants';
@@ -18,7 +18,8 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  ScrollView
+  ScrollView,
+  Alert
 } from 'react-native';
 import { globalStyle } from '../../variables/styles';
 import { create } from 'react-native-pixel-perfect';
@@ -26,18 +27,74 @@ import Entypo from 'react-native-vector-icons/Entypo';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import Foundation from 'react-native-vector-icons/Foundation';
 import RoundButton from '../../component/RoundButton';
+import { callApi } from '../../api';
+import { API_CONFIG } from '../../api/api_url'
 
+const body = {
+  "longitude": -75.55233,
+  "latitude": 41.464539,
+  "isdineinorder": false,
+  "istakeoutorder": false,
+  "isdeliveryorder": true,
+  "appusername": "precision",
+  "apppassword": "precision_arc$1",
+  "loggedinusername": "developer2@precisionpos.com",
+  "loggedinpassword": "abcd1234",
+  "businessid": 178,
+  "storefrontcd": 218,
+  "sessionid": 0
+}
 export default function SearchScreen({ navigation }) {
 
   const array = ['1', '2', '3', '4', '5']
+  const [storeList, setStoreList ] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [searchType, setSearchType] = useState("Delivery");
+  // Write find a store api call
+  useEffect(() => {
+    console.log("THis page is running ")
+    const getStoreList = async () => {
+      try {
+        const response = await callApi(
+          "getstorefrontlist",
+          body,
+          1,
+          null,
+        );
+        console.log("Response is here :: ", response)
+        setStoreList([...response.body.data.listStoreFrontBeans])
+        setIsLoading(false)
+      } catch (error) {
+        console.log("Error :: ", error)
+        throw error;
+      }
+    }
+    getStoreList();
+  },[searchType]);
 
+  const updateSearchType = (type) => {
+    if(type === "Delivery") {
+      body.isdeliveryorder = true;
+      body.isdineinorder = false;
+      body.istakeoutorder = false;
+    } else if (type === "Dine In"){
+      body.isdeliveryorder = false;
+      body.isdineinorder = true;
+      body.istakeoutorder = false;
+    } else {
+      body.isdeliveryorder = false;
+      body.isdineinorder = false;
+      body.istakeoutorder = true;
+    }
+    setSearchType(type)
+  }
   const renderList = () => {
-    return array.map(item => {
+    return storeList.map((item, index) => {
       return (
-        <View key={item} style={styles.item}>
+        <View key={index} style={styles.item}>
           <View style={{ flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between' }}>
             <Text style={[globalStyle.normalText, { fontWeight: 'bold' }]}>
-              Mazzio's Tulsa, OK 96003
+              {item.storeTitle}
             </Text>
             <Text style={{ fontSize: perfectSize(14), color: c_light_blue }}>3.5 miles</Text>
           </View>
@@ -62,7 +119,6 @@ export default function SearchScreen({ navigation }) {
       )
     })
   }
-
   return (
     <View style={globalStyle.mainContainer}>
       <SafeAreaView style={{flex: 1}}>
@@ -91,9 +147,9 @@ export default function SearchScreen({ navigation }) {
           </View>
           {/** Group Button */}
           <View style={styles.groupButton}>
-            <TouchableOpacity style={[
+            <TouchableOpacity onPress={() => updateSearchType("Delivery")} style={[
               styles.groupButtonItem,
-              { backgroundColor: c_primary_black }
+              { backgroundColor: searchType === 'Delivery' ? c_primary_black : 'transparent' }
             ]}>
               <Text style={[
                 globalStyle.midText,
@@ -101,17 +157,17 @@ export default function SearchScreen({ navigation }) {
               ]}>Delivery</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity style={[
+            <TouchableOpacity  onPress={() => updateSearchType("Dine In")}  style={[
               styles.groupButtonItem,
               styles.splitBorder,
-              { backgroundColor: 'transparent' },
+              { backgroundColor: searchType === 'Dine In' ? c_primary_black : 'transparent' },
             ]}>
               <Text style={globalStyle.midText}>Dine In</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity style={[
+            <TouchableOpacity  onPress={() => updateSearchType("Pick Up")}  style={[
               styles.groupButtonItem,
-              { backgroundColor: 'transparent' }
+              { backgroundColor: searchType === 'Pick Up' ? c_primary_black : 'transparent' }
             ]}>
               <Text style={globalStyle.midText}>Pickup</Text>
             </TouchableOpacity>
